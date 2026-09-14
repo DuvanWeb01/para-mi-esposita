@@ -1,0 +1,648 @@
+<title>Boleto Secreto</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,340;0,9..144,500;0,9..144,600;1,9..144,500&family=Work+Sans:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap">
+<style>
+  :root{
+    --bg:#eef8f6;
+    --paper:#fffdf8;
+    --surface:#ffffff;
+    --surface-2:#e2f1ee;
+    --ink:#0d3b3d;
+    --ink-soft:#4a6e6c;
+    --accent:#ff6f5a;
+    --accent-strong:#e0503c;
+    --accent-ink:#5c1a10;
+    --gold:#e2a300;
+    --sea:#1a8f8c;
+    --muted:#6d908e;
+    --line:rgba(13,59,61,.16);
+    --shadow:0 18px 40px -20px rgba(13,59,61,.35);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#07211f; --paper:#0f2f2c; --surface:#0e332f; --surface-2:#123c37;
+      --ink:#eef8f6; --ink-soft:#aecfcc; --accent:#ff8b76; --accent-strong:#ffa590;
+      --accent-ink:#ffe3da; --gold:#f2c04a; --sea:#4fd0c9; --muted:#8fb6b2;
+      --line:rgba(238,248,246,.16); --shadow:0 18px 44px -18px rgba(0,0,0,.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#07211f; --paper:#0f2f2c; --surface:#0e332f; --surface-2:#123c37;
+    --ink:#eef8f6; --ink-soft:#aecfcc; --accent:#ff8b76; --accent-strong:#ffa590;
+    --accent-ink:#ffe3da; --gold:#f2c04a; --sea:#4fd0c9; --muted:#8fb6b2;
+    --line:rgba(238,248,246,.16); --shadow:0 18px 44px -18px rgba(0,0,0,.55);
+  }
+
+  *{box-sizing:border-box;}
+  html{color-scheme:light dark;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at 1px 1px, var(--line) 1px, transparent 0) 0 0/22px 22px,
+      var(--bg);
+    color:var(--ink);
+    font-family:"Work Sans", ui-sans-serif, system-ui, sans-serif;
+    padding-inline:20px;
+    padding-block:28px 56px;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{font-family:"Fraunces", Georgia, serif; text-wrap:balance; margin:0;}
+  p{margin:0;}
+  .eyebrow{
+    font-family:"Space Mono", ui-monospace, monospace;
+    text-transform:uppercase; letter-spacing:.14em; font-size:.72rem; color:var(--sea);
+  }
+  .wrap{max-width:760px;margin-inline:auto;display:flex;flex-direction:column;gap:26px;}
+
+  /* ---------- Progress ---------- */
+  .progress{
+    position:sticky; top:0; z-index:20;
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    background:var(--bg); padding-block:10px;
+  }
+  .progress .dot{
+    width:10px; height:10px; border-radius:50%;
+    background:var(--surface-2); border:1px solid var(--line);
+    cursor:default; padding:0;
+  }
+  .progress .dot.done{background:var(--sea); border-color:var(--sea);}
+  .progress .dot.current{background:var(--accent); border-color:var(--accent-strong); transform:scale(1.3);}
+  .progress .dot.reachable{cursor:pointer;}
+
+  /* ---------- Screens ---------- */
+  .screen{
+    display:flex; flex-direction:column; align-items:center; gap:20px; text-align:center;
+    min-height:60vh; justify-content:center;
+    animation:fade-in .5s ease;
+  }
+  .screen[hidden]{display:none;}
+  @keyframes fade-in{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+  .back-link{
+    align-self:flex-start; background:none; border:none; cursor:pointer;
+    color:var(--muted); font-family:"Work Sans",sans-serif; font-size:.82rem; padding:4px 0;
+  }
+  .back-link:hover{color:var(--sea);}
+  .step-label{color:var(--muted); font-size:.85rem;}
+
+  /* ---------- Hero / Envelope ---------- */
+  .hero p.lede{max-width:46ch;color:var(--ink-soft);font-size:1.05rem;line-height:1.6;}
+  .hero h1{font-size:clamp(1.8rem,5vw,2.6rem);font-weight:600;}
+
+  .envelope-stage{perspective:1200px;width:min(320px,86vw);}
+  .envelope{ position:relative; width:100%; aspect-ratio:3/2; cursor:pointer; filter:drop-shadow(var(--shadow)); }
+  .envelope:focus-visible{outline:3px solid var(--sea); outline-offset:6px; border-radius:8px;}
+  .env-body{ position:absolute; inset:0; background:var(--surface-2); border-radius:10px; overflow:hidden; }
+  .env-body::before{
+    content:""; position:absolute; inset:0;
+    background:
+      linear-gradient(135deg, transparent 49.3%, var(--surface) 49.3% 50.7%, transparent 50.7%),
+      linear-gradient(45deg, transparent 49.3%, var(--surface) 49.3% 50.7%, transparent 50.7%);
+    opacity:.55;
+  }
+  .letter-peek{
+    position:absolute; left:6%; right:6%; top:14%; height:72%;
+    background:var(--paper); border-radius:6px; box-shadow:0 -4px 10px rgba(0,0,0,.08);
+    transform:translateY(6%); transition:transform .55s cubic-bezier(.2,.8,.2,1); z-index:1;
+  }
+  .flap{
+    position:absolute; left:0; right:0; top:0; height:52%; background:var(--accent);
+    clip-path:polygon(0 0,100% 0,50% 100%); transform-origin:top center;
+    transition:transform .6s cubic-bezier(.3,.8,.3,1); z-index:3;
+  }
+  .seal{
+    position:absolute; left:50%; top:46%; width:46px; height:46px; background:var(--accent-strong);
+    border-radius:50%; transform:translate(-50%,-50%); display:grid; place-items:center;
+    color:#fff2ee; font-family:"Fraunces",serif; font-size:1.3rem; box-shadow:0 6px 14px rgba(0,0,0,.25);
+    z-index:4; transition:transform .4s ease, opacity .4s ease;
+  }
+  .envelope.opening .flap{transform:rotateX(180deg);}
+  .envelope.opening .seal{transform:translate(-50%,-50%) scale(0); opacity:0;}
+  .envelope.opening .letter-peek{transform:translateY(-58%);}
+  .envelope-hint{font-size:.85rem; color:var(--muted);}
+
+  .letter-full{
+    max-width:480px; background:var(--paper); border-radius:14px; padding:36px 30px;
+    box-shadow:var(--shadow); text-align:left; display:flex; flex-direction:column; gap:16px;
+    border:1px solid var(--line);
+  }
+  .letter-full[hidden]{display:none;}
+  .letter-full p{color:var(--ink-soft); line-height:1.75; font-size:1rem;}
+  .letter-full .signoff{font-family:"Fraunces",serif; font-style:italic; color:var(--ink); font-size:1.15rem;}
+  .primary-btn{
+    align-self:center; margin-top:4px; border:none; cursor:pointer; background:var(--accent);
+    color:#2a0d07; font-family:"Work Sans", sans-serif; font-weight:600; font-size:.95rem;
+    padding:12px 26px; border-radius:999px; box-shadow:0 10px 22px -10px var(--accent-strong);
+    transition:transform .15s ease;
+  }
+  .primary-btn:hover{transform:translateY(-2px);}
+  .primary-btn:focus-visible{outline:3px solid var(--sea); outline-offset:3px;}
+  .primary-btn[hidden]{display:none;}
+
+  /* ---------- Game 1: Clue stamps ---------- */
+  .game-copy{max-width:48ch;color:var(--ink-soft);}
+  .stamp-grid{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; width:100%; }
+  @media (max-width:640px){ .stamp-grid{grid-template-columns:1fr;} }
+  .stamp{ perspective:1000px; aspect-ratio:3/4; }
+  .stamp-inner{ position:relative; width:100%; height:100%; transform-style:preserve-3d; transition:transform .7s cubic-bezier(.3,.8,.3,1); }
+  .stamp.flipped .stamp-inner{transform:rotateY(180deg);}
+  .stamp-face{
+    position:absolute; inset:0; -webkit-backface-visibility:hidden; backface-visibility:hidden;
+    border-radius:6px; padding:18px 14px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center;
+  }
+  .stamp-front{ background:var(--surface); border:1px solid var(--line); cursor:pointer; }
+  .stamp-front::before{ content:""; position:absolute; inset:7px; border:2px dashed var(--line); border-radius:3px; pointer-events:none; }
+  .stamp-front .num{font-family:"Space Mono",monospace; font-size:.68rem; letter-spacing:.12em; color:var(--sea);}
+  .stamp-front .riddle{font-family:"Fraunces",serif; font-style:italic; font-size:1rem; line-height:1.4; color:var(--ink);}
+  .stamp-front .tap{font-size:.72rem; color:var(--muted);}
+  .stamp-back{ transform:rotateY(180deg); color:var(--ink); gap:8px; }
+  .stamp-back.no{background:var(--surface-2); border:1px solid var(--line); color:var(--ink-soft);}
+  .stamp-back.yes{ background:linear-gradient(160deg, var(--accent), var(--gold)); color:#2a0d07; border:1px solid transparent; }
+  .stamp-back .big{font-size:1.6rem;}
+  .stamp-back .msg{font-size:.86rem; line-height:1.4;}
+
+  /* ---------- Game 2: Memory match ---------- */
+  .memory-grid{
+    display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; width:100%; max-width:420px;
+  }
+  @media (max-width:420px){ .memory-grid{grid-template-columns:repeat(3,minmax(0,1fr));} }
+  .mem-card{ perspective:900px; aspect-ratio:1; }
+  .mem-card button{
+    all:unset; position:relative; width:100%; height:100%; display:block; cursor:pointer;
+    transform-style:preserve-3d; transition:transform .5s cubic-bezier(.3,.8,.3,1);
+  }
+  .mem-card.flipped button, .mem-card.matched button{transform:rotateY(180deg);}
+  .mem-face{
+    position:absolute; inset:0; -webkit-backface-visibility:hidden; backface-visibility:hidden;
+    border-radius:8px; display:grid; place-items:center; font-size:1.5rem;
+  }
+  .mem-front{ background:var(--surface-2); border:1px solid var(--line); color:var(--sea); }
+  .mem-back{ background:var(--surface); border:1px solid var(--line); transform:rotateY(180deg); }
+  .mem-card.matched .mem-back{ background:linear-gradient(160deg, var(--accent), var(--gold)); border-color:transparent; }
+
+  /* ---------- Game 3: Photo puzzle ---------- */
+  .puzzle-wrap{ width:min(320px,86vw); }
+  .puzzle-grid{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:3px; width:100%; aspect-ratio:1;
+    background:var(--line); border-radius:10px; overflow:hidden; box-shadow:var(--shadow);
+  }
+  .puzzle-grid.solved{gap:0;}
+  .ptile{
+    background-image:url('hotel-panama.jpg'); background-size:300% 300%; cursor:pointer; border:none; padding:0;
+  }
+  .ptile.selected{ outline:3px solid var(--accent); outline-offset:-3px; }
+  .puzzle-grid.solved .ptile{ cursor:default; outline:none; }
+  .puzzle-hint{font-size:.82rem;color:var(--muted);}
+
+  /* ---------- Boarding pass ---------- */
+  .countdown{
+    font-family:"Space Mono",monospace; font-size:.8rem; letter-spacing:.06em; color:var(--sea);
+    background:var(--surface-2); padding:6px 14px; border-radius:999px;
+  }
+  .ticket{
+    display:grid; grid-template-columns:1fr auto; width:100%; background:var(--paper); border-radius:16px;
+    box-shadow:var(--shadow); overflow:hidden; text-align:left; border:1px solid var(--line);
+  }
+  @media (max-width:560px){ .ticket{grid-template-columns:1fr;} }
+  .ticket-main{padding:26px 26px 22px; display:flex; flex-direction:column; gap:18px;}
+  .ticket-brand{display:flex; justify-content:space-between; align-items:center;}
+  .ticket-brand .name{font-family:"Fraunces",serif; font-weight:600; font-size:1.05rem;}
+  .ticket-brand .plane{font-size:1.3rem;}
+  .route{display:flex; align-items:center; gap:14px;}
+  .route .city{font-family:"Fraunces",serif; font-size:1.5rem; font-weight:600;}
+  .route .code{font-family:"Space Mono",monospace; font-size:.7rem; color:var(--muted); letter-spacing:.08em;}
+  .route .arrow{flex:1; height:1px; background:repeating-linear-gradient(to right, var(--line) 0 8px, transparent 8px 14px); position:relative;}
+  .route .arrow::after{content:"✈"; position:absolute; right:0; top:-11px; color:var(--sea); font-size:1rem;}
+  .ticket-grid{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
+  @media (max-width:480px){ .ticket-grid{grid-template-columns:repeat(2,minmax(0,1fr));} }
+  .ticket-field .label{font-family:"Space Mono",monospace; font-size:.62rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted);}
+  .ticket-field .value{font-family:"Work Sans",sans-serif; font-weight:600; font-size:.92rem; margin-top:2px;}
+  .ticket-photo{position:relative; width:100%; border-radius:10px; overflow:hidden; aspect-ratio:16/9;}
+  .ticket-photo img{width:100%; height:100%; object-fit:cover; display:block;}
+  .ticket-photo figcaption{
+    position:absolute; left:0; right:0; bottom:0; background:linear-gradient(0deg, rgba(0,0,0,.55), transparent);
+    color:#fff; font-family:"Space Mono",monospace; font-size:.68rem; letter-spacing:.08em; padding:6px 10px;
+  }
+  .ticket-stub{
+    width:150px; background:var(--surface-2); border-left:2px dashed var(--line); padding:22px 16px;
+    display:flex; flex-direction:column; gap:14px; justify-content:space-between; position:relative;
+  }
+  @media (max-width:560px){ .ticket-stub{width:100%; border-left:none; border-top:2px dashed var(--line); flex-direction:row; align-items:center;} }
+  .punch{ position:absolute; width:20px; height:20px; background:var(--bg); border-radius:50%; left:-11px; }
+  .punch.top{top:-11px;} .punch.bottom{bottom:-11px;}
+  @media (max-width:560px){ .punch{display:none;} }
+  .barcode{ height:38px; background:repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 5px, var(--ink) 5px 6px, transparent 6px 9px); opacity:.75; }
+  .stub-code{font-family:"Space Mono",monospace; font-size:.68rem; color:var(--ink-soft); text-align:center;}
+
+  .closing{max-width:52ch;}
+  .closing h2{font-size:clamp(1.5rem,4.5vw,2.1rem); font-weight:600;}
+  .closing p{color:var(--ink-soft); line-height:1.7; margin-top:10px;}
+
+  footer{color:var(--muted); font-size:.78rem; text-align:center;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition-duration:.01ms !important; animation-duration:.01ms !important;}
+  }
+</style>
+
+<div class="wrap">
+
+  <nav class="progress" id="progress" aria-label="Progreso"></nav>
+
+  <!-- Screen 0: intro -->
+  <section class="screen hero" data-screen="0">
+    <p class="eyebrow">Un secreto para ti</p>
+    <h1>Esposita, tienes correo&nbsp;💌</h1>
+    <p class="lede">Antes de soplar las velitas, hay algo que llevo semanas guardando. Toca el sobre para abrirlo.</p>
+
+    <div class="envelope-stage">
+      <div class="envelope" id="envelope" role="button" tabindex="0" aria-label="Abrir el sobre">
+        <div class="letter-peek"></div>
+        <div class="env-body"></div>
+        <div class="flap"></div>
+        <div class="seal">M</div>
+      </div>
+    </div>
+    <p class="envelope-hint" id="envelope-hint">Toca el sello de cera para abrirlo</p>
+  </section>
+
+  <!-- Screen 1: Letter -->
+  <section class="screen" data-screen="1" hidden>
+    <div class="letter-full">
+      <p class="eyebrow">Para mi Esposita</p>
+      <p>Mi amor, feliz cumpleaños. Hoy no quiero darte algo que se guarda en un cajón — quiero darte días enteros que solo sean nuestros, sin prisa, sin pendientes, sin nada que hacer más que estar juntos.</p>
+      <p>Llevo un tiempo planeando esto en silencio, y ya no aguanto las ganas de contártelo. Preparé tres jueguitos — resuélvelos y al final de cada uno se abrirá el siguiente, hasta llegar a la sorpresa completa.</p>
+      <p class="signoff">Con todo mi amor, tu esposo.</p>
+      <button class="primary-btn" id="continue-btn" type="button">Vamos a jugar →</button>
+    </div>
+  </section>
+
+  <!-- Screen 2: Clue stamps -->
+  <section class="screen" data-screen="3" hidden>
+    <button class="back-link" data-goto="2">← Atrás</button>
+    <p class="step-label">Juego 2 de 3</p>
+    <h2>Tres pistas, un solo destino</h2>
+    <p class="game-copy">Toca cada sello para revelarlo. Solo uno es real — ¿cuál será?</p>
+
+    <div class="stamp-grid">
+      <div class="stamp" data-outcome="no">
+        <div class="stamp-inner">
+          <div class="stamp-face stamp-front" role="button" tabindex="0" aria-label="Revelar pista 1">
+            <span class="num">PISTA 01</span>
+            <p class="riddle">"Un mar de siete colores y arena como azúcar."</p>
+            <span class="tap">toca para revelar</span>
+          </div>
+          <div class="stamp-face stamp-back no">
+            <span class="big">🌺</span>
+            <p class="msg"><strong>San Andrés</strong> es hermosa… pero no es aquí esta vez. ¡Sigue buscando!</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="stamp" data-outcome="no">
+        <div class="stamp-inner">
+          <div class="stamp-face stamp-front" role="button" tabindex="0" aria-label="Revelar pista 2">
+            <span class="num">PISTA 02</span>
+            <p class="riddle">"Un pueblito tranquilo del Caribe, de atardeceres eternos."</p>
+            <span class="tap">toca para revelar</span>
+          </div>
+          <div class="stamp-face stamp-back no">
+            <span class="big">🐚</span>
+            <p class="msg"><strong>Coveñas</strong> queda pendiente para otra escapada. ¡Casi!</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="stamp" data-outcome="yes" id="winner-stamp">
+        <div class="stamp-inner">
+          <div class="stamp-face stamp-front" role="button" tabindex="0" aria-label="Revelar pista 3">
+            <span class="num">PISTA 03</span>
+            <p class="riddle">"Un istmo entre dos mares, donde el mundo cruza en barco."</p>
+            <span class="tap">toca para revelar</span>
+          </div>
+          <div class="stamp-face stamp-back yes">
+            <span class="big">🎉</span>
+            <p class="msg">¡Es aquí! Nos vamos a <strong>Panamá</strong>.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="primary-btn" id="game1-next" type="button" hidden>Siguiente juego →</button>
+  </section>
+
+  <!-- Screen 1: Memory match -->
+  <section class="screen" data-screen="2" hidden>
+    <button class="back-link" data-goto="1">← Atrás</button>
+    <p class="step-label">Juego 1 de 3</p>
+    <h2>Empareja los recuerdos del viaje</h2>
+    <p class="game-copy">Encuentra las 6 parejas antes de seguir.</p>
+    <div class="memory-grid" id="memory-grid"></div>
+    <button class="primary-btn" id="game2-next" type="button" hidden>Siguiente juego →</button>
+  </section>
+
+  <!-- Screen 3: Photo puzzle -->
+  <section class="screen" data-screen="4" hidden>
+    <button class="back-link" data-goto="3">← Atrás</button>
+    <p class="step-label">Juego 3 de 3</p>
+    <h2>Arma la foto sorpresa</h2>
+    <p class="game-copy">Toca dos piezas para intercambiarlas y ordena la imagen.</p>
+    <div class="puzzle-wrap">
+      <div class="puzzle-grid" id="puzzle-grid"></div>
+    </div>
+    <p class="puzzle-hint" id="puzzle-hint">0 de 9 piezas en su lugar</p>
+    <button class="primary-btn" id="game3-next" type="button" hidden>Ver el regalo completo →</button>
+  </section>
+
+  <!-- Screen 4: Boarding pass -->
+  <section class="screen" data-screen="5" hidden>
+    <button class="back-link" data-goto="4">← Atrás</button>
+    <p class="eyebrow">Confirmado</p>
+    <h2>¡Nos vamos a Panamá!</h2>
+    <p class="countdown" id="countdown"></p>
+
+    <div class="ticket">
+      <div class="ticket-main">
+        <div class="ticket-brand">
+          <span class="name">Boleto Secreto Airlines</span>
+          <span class="plane">✈️</span>
+        </div>
+        <div class="route">
+          <div><div class="city">Casa</div><div class="code">HOME</div></div>
+          <div class="arrow"></div>
+          <div><div class="city">Panamá</div><div class="code">PTY</div></div>
+        </div>
+        <div class="ticket-grid">
+          <div class="ticket-field"><div class="label">Pasajera</div><div class="value">Esposita</div></div>
+          <div class="ticket-field"><div class="label">Fechas</div><div class="value">18–21 dic 2026</div></div>
+          <div class="ticket-field"><div class="label">Puerta</div><div class="value">Amor</div></div>
+          <div class="ticket-field"><div class="label">Asiento</div><div class="value">Tú y yo</div></div>
+        </div>
+        <figure class="ticket-photo">
+          <img src="hotel-panama.jpg" alt="Vista del resort junto al mar en Panamá" loading="lazy">
+          <figcaption>Riu Playa Blanca — nuestro hotel</figcaption>
+        </figure>
+      </div>
+      <div class="ticket-stub">
+        <span class="punch top"></span>
+        <div class="stub-code">PTY<br>18 DIC</div>
+        <div class="barcode"></div>
+        <span class="punch bottom"></span>
+      </div>
+    </div>
+
+    <div class="closing">
+      <h2>Feliz cumpleaños, mi amor 🎂</h2>
+      <p>Gracias por cada día que decides compartir conmigo. Este viaje es apenas una forma pequeña de decirte todo lo que significas para mí — nos vemos en la playa, esposita.</p>
+    </div>
+  </section>
+
+  <footer>Hecho con amor, para ti.</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/canvas-confetti/1.9.3/confetti.browser.min.js"></script>
+<script>
+(function(){
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var STORE_KEY = 'boleto-secreto-v4';
+  var TOTAL_SCREENS = 6;
+  var state = {flipped:{}, current:0, maxUnlocked:0, memory:null, puzzleSolved:false};
+  try{
+    var saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+    if(saved) state = Object.assign(state, saved);
+  }catch(e){}
+
+  function save(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){} }
+  function fireConfetti(opts){
+    if(typeof confetti !== 'function') return;
+    confetti(Object.assign({particleCount:110, spread:75, origin:{y:.6}, colors:['#ff6f5a','#e2a300','#1a8f8c']}, opts||{}));
+  }
+
+  /* ---------- Screen navigation ---------- */
+  var screens = Array.prototype.slice.call(document.querySelectorAll('.screen'));
+  var progressNav = document.getElementById('progress');
+
+  function renderProgress(){
+    progressNav.innerHTML = '';
+    for(var i=0;i<TOTAL_SCREENS;i++){
+      var dot = document.createElement('button');
+      dot.className = 'dot';
+      dot.type = 'button';
+      dot.setAttribute('aria-label', 'Pantalla ' + (i+1));
+      if(i < state.current) dot.classList.add('done');
+      if(i === state.current) dot.classList.add('current');
+      if(i <= state.maxUnlocked){
+        dot.classList.add('reachable');
+        dot.addEventListener('click', function(idx){ return function(){ goTo(idx); }; }(i));
+      }
+      progressNav.appendChild(dot);
+    }
+  }
+
+  function goTo(index){
+    if(index > state.maxUnlocked) return;
+    state.current = index; save();
+    screens.forEach(function(s){ s.hidden = (parseInt(s.dataset.screen,10) !== index); });
+    renderProgress();
+    if(index === 0) envelope.classList.remove('opening');
+  }
+
+  function unlock(index){
+    if(index > state.maxUnlocked){ state.maxUnlocked = index; save(); }
+  }
+
+  document.querySelectorAll('[data-goto]').forEach(function(btn){
+    btn.addEventListener('click', function(){ goTo(parseInt(btn.dataset.goto,10)); });
+  });
+
+  /* ---------- Screen 0: envelope ---------- */
+  var envelope = document.getElementById('envelope');
+  var continueBtn = document.getElementById('continue-btn');
+
+  function openEnvelope(){
+    envelope.classList.add('opening');
+    unlock(1);
+    var delay = reduceMotion ? 0 : 550;
+    setTimeout(function(){ goTo(1); }, delay);
+  }
+  envelope.addEventListener('click', openEnvelope);
+  envelope.addEventListener('keydown', function(e){ if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openEnvelope(); } });
+
+  continueBtn.addEventListener('click', function(){ unlock(2); goTo(2); });
+
+  /* ---------- Screen 3: clue stamps ---------- */
+  var stamps = Array.prototype.slice.call(document.querySelectorAll('.stamp'));
+  var game1Next = document.getElementById('game1-next');
+  stamps.forEach(function(stamp, idx){
+    var front = stamp.querySelector('.stamp-front');
+    function flip(){
+      if(stamp.classList.contains('flipped')) return;
+      stamp.classList.add('flipped');
+      state.flipped[idx] = true; save();
+      if(stamp.dataset.outcome === 'yes'){
+        fireConfetti();
+        game1Next.hidden = false;
+      }
+    }
+    front.addEventListener('click', flip);
+    front.addEventListener('keydown', function(e){ if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); flip(); } });
+    if(state.flipped[idx]) stamp.classList.add('flipped');
+  });
+  if(state.flipped[2]) game1Next.hidden = false;
+  game1Next.addEventListener('click', function(){ unlock(4); goTo(4); });
+
+  /* ---------- Screen 2: memory match ---------- */
+  var MEM_ICONS = ['✈️','🧳','🌴','🕶️','📸','❤️'];
+  var memoryGrid = document.getElementById('memory-grid');
+  var game2Next = document.getElementById('game2-next');
+
+  function shuffle(arr){
+    for(var i=arr.length-1;i>0;i--){
+      var j = Math.floor(Math.random()*(i+1));
+      var t=arr[i]; arr[i]=arr[j]; arr[j]=t;
+    }
+    return arr;
+  }
+
+  var memDeck = state.memory && state.memory.deck ? state.memory.deck : shuffle(MEM_ICONS.concat(MEM_ICONS));
+  var memMatched = state.memory && state.memory.matched ? state.memory.matched : [];
+  state.memory = {deck: memDeck, matched: memMatched};
+  save();
+
+  var memCards = [];
+  memDeck.forEach(function(icon, idx){
+    var card = document.createElement('div');
+    card.className = 'mem-card';
+    var isMatched = memMatched.indexOf(idx) !== -1;
+    if(isMatched) card.classList.add('matched');
+    card.innerHTML =
+      '<button type="button" aria-label="Carta ' + (idx+1) + '">' +
+        '<span class="mem-face mem-front">❔</span>' +
+        '<span class="mem-face mem-back">' + icon + '</span>' +
+      '</button>';
+    memoryGrid.appendChild(card);
+    memCards.push(card);
+  });
+
+  var memFirst = null, memBusy = false;
+  function checkMemoryWin(){
+    if(memMatched.length === memDeck.length){
+      game2Next.hidden = false;
+      fireConfetti({particleCount:70, spread:60});
+    }
+  }
+  checkMemoryWin();
+
+  memCards.forEach(function(card, idx){
+    var btn = card.querySelector('button');
+    btn.addEventListener('click', function(){
+      if(memBusy || card.classList.contains('matched') || card.classList.contains('flipped')) return;
+      card.classList.add('flipped');
+      if(memFirst === null){
+        memFirst = idx;
+        return;
+      }
+      var second = idx;
+      memBusy = true;
+      if(memDeck[memFirst] === memDeck[second]){
+        memMatched.push(memFirst, second);
+        memCards[memFirst].classList.add('matched');
+        memCards[second].classList.add('matched');
+        state.memory.matched = memMatched; save();
+        memFirst = null; memBusy = false;
+        checkMemoryWin();
+      } else {
+        setTimeout(function(){
+          memCards[memFirst].classList.remove('flipped');
+          memCards[second].classList.remove('flipped');
+          memFirst = null; memBusy = false;
+        }, reduceMotion ? 50 : 700);
+      }
+    });
+  });
+  game2Next.addEventListener('click', function(){ unlock(3); goTo(3); });
+
+  /* ---------- Screen 3: photo puzzle (3x3 swap) ---------- */
+  var puzzleGrid = document.getElementById('puzzle-grid');
+  var puzzleHint = document.getElementById('puzzle-hint');
+  var game3Next = document.getElementById('game3-next');
+  var SIZE = 3;
+  var order = state.puzzle && state.puzzle.length === 9 ? state.puzzle.slice() : shuffle([0,1,2,3,4,5,6,7,8]);
+  var isIdentity = order.every(function(v,i){ return v===i; });
+  if(isIdentity){
+    var a=order[0]; order[0]=order[1]; order[1]=a;
+  }
+  state.puzzle = order; save();
+
+  var tiles = [];
+  function tileBgPos(origIndex){
+    var col = origIndex % SIZE, row = Math.floor(origIndex / SIZE);
+    return (col*50) + '% ' + (row*50) + '%';
+  }
+  order.forEach(function(origIndex, pos){
+    var t = document.createElement('button');
+    t.type = 'button';
+    t.className = 'ptile';
+    t.style.backgroundPosition = tileBgPos(origIndex);
+    t.setAttribute('aria-label', 'Pieza en posicion ' + (pos+1));
+    puzzleGrid.appendChild(t);
+    tiles.push(t);
+  });
+
+  var puzzleSolved = state.puzzleSolved;
+  function renderPuzzleHint(){
+    var correct = order.filter(function(v,i){ return v===i; }).length;
+    puzzleHint.textContent = puzzleSolved ? '¡Foto completa!' : (correct + ' de 9 piezas en su lugar');
+  }
+  renderPuzzleHint();
+  if(puzzleSolved){
+    puzzleGrid.classList.add('solved');
+    game3Next.hidden = false;
+  }
+
+  var puzzleFirst = null;
+  function checkPuzzleWin(){
+    if(order.every(function(v,i){ return v===i; })){
+      puzzleSolved = true;
+      state.puzzleSolved = true; save();
+      puzzleGrid.classList.add('solved');
+      tiles.forEach(function(t){ t.classList.remove('selected'); });
+      game3Next.hidden = false;
+      fireConfetti({particleCount:90, spread:70});
+    }
+  }
+  tiles.forEach(function(tile, pos){
+    tile.addEventListener('click', function(){
+      if(puzzleSolved) return;
+      if(puzzleFirst === null){
+        puzzleFirst = pos;
+        tile.classList.add('selected');
+        return;
+      }
+      if(puzzleFirst === pos){
+        tile.classList.remove('selected');
+        puzzleFirst = null;
+        return;
+      }
+      var tmp = order[puzzleFirst]; order[puzzleFirst] = order[pos]; order[pos] = tmp;
+      tiles[puzzleFirst].style.backgroundPosition = tileBgPos(order[puzzleFirst]);
+      tiles[pos].style.backgroundPosition = tileBgPos(order[pos]);
+      tiles[puzzleFirst].classList.remove('selected');
+      puzzleFirst = null;
+      state.puzzle = order; save();
+      renderPuzzleHint();
+      checkPuzzleWin();
+    });
+  });
+  game3Next.addEventListener('click', function(){ unlock(5); goTo(5); });
+
+  /* ---------- Screen 4: countdown ---------- */
+  var countdownEl = document.getElementById('countdown');
+  var trip = new Date(2026,11,18);
+  var today = new Date();
+  var diffDays = Math.ceil((trip - today) / 86400000);
+  countdownEl.textContent = diffDays > 0 ? '⏳ Faltan ' + diffDays + ' días para despegar' : '✈️ ¡El viaje ya llegó!';
+
+  /* ---------- Init ---------- */
+  goTo(state.current);
+})();
+</script>
